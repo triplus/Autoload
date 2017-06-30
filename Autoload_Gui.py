@@ -19,6 +19,8 @@
 
 """Autoload module for FreeCAD."""
 
+import os
+import importlib
 import FreeCAD as App
 import FreeCADGui as Gui
 from PySide import QtGui
@@ -26,7 +28,11 @@ from PySide import QtCore
 
 mw = Gui.getMainWindow()
 p = App.ParamGet("User parameter:BaseApp/Autoload")
-g = App.ParamGet("User parameter:BaseApp/Preferences/General")
+pGen = App.ParamGet("User parameter:BaseApp/Preferences/General")
+default = pGen.GetString("AutoloadModule", "StartWorkbench")
+defaultPath = App.getUserAppDataDir() + "Macro"
+customPath = App.ParamGet('User parameter:BaseApp/Preferences/Macro')
+path = customPath.GetString("MacroPath", defaultPath)
 
 
 def wbIcon(i):
@@ -49,16 +55,39 @@ def wbIcon(i):
     return icon
 
 
-def widget():
-    """Create autoload preferences dialog."""
-    w = QtGui.QListWidget()
+def modules():
+    """Available modules in the macro folder."""
+    mod = []
+    if os.path.isdir(path):
+        for i in os.listdir(path):
+            if (os.path.isfile(path + os.sep + i) and
+                    i.startswith("Autoload_") and
+                    i.endswith(".py")):
+                mod.append(i)
+    return mod
+
+
+def widget(dia):
+    """List widget for autoload preferences dialog."""
+    w = QtGui.QListWidget(dia)
     mod = p.GetString("modules")
     mod = mod.split(",")
+    available = modules()
     wb = Gui.listWorkbenches()
     wbSort = list(wb)
     wbSort.sort()
-    default = g.GetString("AutoloadModule", "StartWorkbench")
-
+    for i in available:
+        item = QtGui.QListWidgetItem(w)
+        if i.startswith("Autoload_1_"):
+            item.setText(i[11:][:-3] + " (Custom)")
+        else:
+            item.setText(i[9:][:-3] + " (Custom)")
+        item.setData(32, i)
+        item.setIcon(QtGui.QIcon(":/icons/freecad"))
+        if i in mod:
+            item.setCheckState(QtCore.Qt.CheckState(2))
+        else:
+            item.setCheckState(QtCore.Qt.CheckState(0))
     for i in wbSort:
         name = wb[i].__class__.__name__
         item = QtGui.QListWidgetItem(w)
@@ -111,8 +140,7 @@ def preferencesDialog():
     loCl = QtGui.QHBoxLayout()
     loCl.addStretch(1)
     loCl.addWidget(btnCl)
-    w = widget()
-    w.setParent(dia)
+    w = widget(dia)
     lo.addWidget(w)
     lo.insertLayout(1, loCl)
     dia.finished.connect(onFinished)
@@ -158,17 +186,43 @@ def accessoriesMenu():
             mw.workbenchActivated.connect(addMenu)
 
 
-def loadModules():
-    """Load modules"""
+def loadModulesFirst():
+    """Load modules on Autoload init."""
+    mod = p.GetString("modules")
+    mod = mod.split(",")
+    for i in mod:
+        try:
+            if (os.path.isfile(path + os.sep + i) and
+                    i.startswith("Autoload_") and not
+                    i.startswith("Autoload_1_")):
+                importlib.import_module(i[:-3])
+        except Exception as e:
+            print("Autoload: Exception in " + i + " of type " + str(e))
+
+
+def loadWorkbenches():
+    """Load workbenches."""
     wb = Gui.listWorkbenches()
     mod = p.GetString("modules")
     mod = mod.split(",")
-    default = g.GetString("AutoloadModule", "StartWorkbench")
     for i in mod:
         if i in wb and i != default:
             Gui.activateWorkbench(i)
     if default in mod:
         Gui.activateWorkbench(default)
+
+
+def loadModulesLast():
+    """Load modules at latter start stage."""
+    mod = p.GetString("modules")
+    mod = mod.split(",")
+    for i in mod:
+        try:
+            if (os.path.isfile(path + os.sep + i) and
+                    i.startswith("Autoload_1_")):
+                importlib.import_module(i[:-3])
+        except Exception as e:
+            print("Autoload: Exception in " + i + " of type " + str(e))
 
 
 def onStart():
@@ -182,10 +236,12 @@ def onStart():
     if start:
         timer.stop()
         timer.deleteLater()
-        loadModules()
         accessoriesMenu()
+        loadWorkbenches()
+        loadModulesLast()
 
 
+loadModulesFirst()
 timer = QtCore.QTimer()
 timer.timeout.connect(onStart)
 timer.start(500)
