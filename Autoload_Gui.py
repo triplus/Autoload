@@ -1,6 +1,6 @@
 # AutoLoad module for FreeCAD
 # Copyright (C) 2015, 2016 (as part of TabBar) triplus @ FreeCAD
-# Copyright (C) 2017 triplus @ FreeCAD
+# Copyright (C) 2017, 2018, 2019 triplus @ FreeCAD
 #
 #
 # This library is free software; you can redistribute it and/or
@@ -241,7 +241,16 @@ def onStart():
         loadModulesLast()
 
 
+def onPreStart():
+    """Improve start reliability and maintain FreeCAD 0.16 support."""
+    if App.Version()[1] < "17":
+        onStart()
+    else:
+        if mw.property("eventLoop"):
+            onStart()
+
+
 loadModulesFirst()
 timer = QtCore.QTimer()
-timer.timeout.connect(onStart)
+timer.timeout.connect(onPreStart)
 timer.start(500)
