@@ -181,6 +181,7 @@ def accessoriesMenu():
                 toolsMenu = mb.findChild(QtGui.QMenu, "&Tools")
                 if toolsMenu:
                     toolsMenu.addAction(action)
+                    action.setVisible(True)
 
             addMenu()
             mw.workbenchActivated.connect(addMenu)
