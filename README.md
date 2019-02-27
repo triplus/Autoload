@@ -41,7 +41,7 @@ Instructions for Ubuntu & Mint specifically but can be adapted to other distros.
 Then  
 - Relaunch FreeCAD (workbench should be incorporated automagically).
 ### Usage
-Autoload preferences dialog can be accessed from Tools -> Accessories -> Autoload. Select workbenches that should be loaded on FreeCAD start.
+Autoload preferences dialog can be accessed from the menu bar -> Accessories -> Autoload. Select workbenches that should be loaded on FreeCAD start.
 
 ### Documentation
   
