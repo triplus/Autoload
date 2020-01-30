@@ -157,8 +157,9 @@ def onPreferences():
 def accessoriesMenu():
     """Add autoload preferences to accessories menu."""
     pref = QtGui.QAction(mw)
-    pref.setText("Autoload")
+    pref.setText("Autoload...")
     pref.setObjectName("Autoload")
+    pref.setStatusTip("Load specified workbenches and macros on startup")
     pref.triggered.connect(onPreferences)
     try:
         import AccessoriesMenu
